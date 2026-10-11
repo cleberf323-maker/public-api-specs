@@ -1,0 +1,143 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "DE-LU Day-Ahead Spot Prices Relay",
+    "version": "1.0.0",
+    "description": "Machine-readable 15-minute day-ahead electricity spot-price observations for the DE-LU bidding zone. The relay adds a stable response schema and x402 metering; it does not claim ownership of upstream data. Source: Energy-Charts API /v2/price?bzn=DE-LU, compiled by Fraunhofer ISE. Data attribution and licensing: Energy-Charts.info and Bundesnetzagentur | SMARD.de, CC BY 4.0. The upstream public service is rate-limited; clients must cache responses and honor Retry-After.",
+    "license": {
+      "name": "CC BY 4.0 (upstream data; attribution required)",
+      "url": "https://creativecommons.org/licenses/by/4.0/"
+    },
+    "externalDocs": {
+      "description": "Energy-Charts public API documentation",
+      "url": "https://api.energy-charts.info/openapi.json"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.datapoint.market"
+    }
+  ],
+  "paths": {
+    "/r/digitalworkerapi/de-lu-day-ahead-spot-v2": {
+      "get": {
+        "operationId": "getDeLuDayAheadSpotPrices",
+        "summary": "Get normalized DE-LU 15-minute day-ahead prices",
+        "description": "Returns the normalized relay response for the DE-LU bidding zone. The endpoint is an x402 resource: an unpaid request returns HTTP 402 with payment instructions; a paid request is required to obtain the resource. Experimental provider price is 0.01 USDC per call, before any marketplace or protocol fee. No payment was made while validating this specification.",
+        "responses": {
+          "200": {
+            "description": "Normalized day-ahead price observations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required; x402 challenge for the resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/X402Challenge"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "502": {
+            "description": "Upstream data provider unavailable"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "PriceResponse": {
+        "type": "object",
+        "required": [
+          "schema_version",
+          "endpoint",
+          "country",
+          "bidding_zone",
+          "timezone",
+          "resolution",
+          "interval_minutes",
+          "unit",
+          "generated_at",
+          "available_from",
+          "available_until",
+          "series",
+          "data",
+          "attributes",
+          "license",
+          "deprecated"
+        ],
+        "properties": {
+          "schema_version": { "type": "string" },
+          "endpoint": { "type": "string" },
+          "country": { "type": "string", "example": "DE" },
+          "bidding_zone": { "type": "string", "example": "DE-LU" },
+          "timezone": { "type": "string", "example": "Europe/Berlin" },
+          "resolution": { "type": "string", "example": "15m" },
+          "interval_minutes": { "type": "integer", "const": 15 },
+          "unit": { "type": "string", "example": "EUR/MWh" },
+          "generated_at": { "type": "string", "format": "date-time" },
+          "available_from": { "type": "string", "format": "date-time" },
+          "available_until": { "type": "string", "format": "date-time" },
+          "series": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "name"],
+              "properties": {
+                "id": { "type": "string" },
+                "name": { "type": "string" }
+              }
+            }
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["timestamp", "values"],
+              "properties": {
+                "timestamp": { "type": "string", "format": "date-time" },
+                "values": {
+                  "type": "object",
+                  "additionalProperties": { "type": ["number", "null"] }
+                }
+              }
+            }
+          },
+          "attributes": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "license": { "type": "string" },
+          "deprecated": { "type": "boolean" }
+        }
+      },
+      "X402Challenge": {
+        "type": "object",
+        "description": "The relay's x402 payment challenge. Exact fields may evolve with the x402 protocol.",
+        "required": ["x402Version", "accepts"],
+        "properties": {
+          "x402Version": { "type": "integer" },
+          "accepts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  }
+}
